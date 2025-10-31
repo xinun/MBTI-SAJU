@@ -1,0 +1,16 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "backend API server",
+  "main": "app.js",
+  "scripts": {
+    "start": "node --inspect=9229 app.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "ioredis": "^5.8.2",
+    "mongoose": "^8.0.0",
+    "pug": "^3.0.2"
+  }
+}

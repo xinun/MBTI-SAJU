@@ -1,0 +1,59 @@
+services:
+  # --- 1. MongoDB (호스트 27017 포트 노출) ---
+  mongodb:
+    image: mongo:4 
+    container_name: mongodb
+    restart: always
+    ports:
+      # 🌟 [필수] 호스트(VM)의 27017 포트로 MongoDB를 노출시킵니다.
+      - "27017:27017"
+    networks:
+      - devapp-net
+    volumes:
+      - mongodb-data:/data/db 
+
+  # --- 2. Backend (host 모드, 8080 포트 사용) ---
+  backend:
+    build: ./backend
+    container_name: backend
+    restart: always
+    
+    # 🌟 [1. 변경] VPN(Redis) 접속을 위해 'host' 모드 사용
+    network_mode: "host" 
+    
+    environment:
+      # 🌟 [2. 변경] 호스트의 8080 포트에서 실행
+      - PORT=8080 
+      # 🌟 [3. 변경] 호스트의 127.0.0.1 (localhost)에 노출된 MongoDB로 접속
+      - GUESTBOOK_DB_ADDR=127.0.0.1:27017
+      # 🌟 [4. 추가] utils/redis.js가 사용할 환경 변수
+      - REDIS_HOST=10.178.0.7
+      - REDIS_PORT=6379
+    # ❌ 'networks', 'depends_on'은 'host' 모드에서 무의미하므로 제거
+
+  # --- 3. Frontend (8000 포트, backend와 통신) ---
+  frontend:
+    build: ./frontend
+    container_name: frontend
+    restart: always
+    ports:
+      # 🌟 VM의 8000 포트에서 실행 (기존과 동일)
+      - "8000:80" 
+    environment:
+      - PORT=80
+      # 🌟 [중요] 'frontend/app.js'의 axios가 이 주소를 사용합니다.
+      # 'host.docker.internal'은 컨테이너가 호스트(VM)를 가리키는 특수 주소입니다.
+      - GUESTBOOK_API_ADDR=host.docker.internal:8080
+    networks:
+      - devapp-net
+    # 🌟 [필수] 'host.docker.internal' 주소를 해석하기 위해 추가
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - mongodb
+      
+networks:
+  devapp-net: {}
+
+volumes:
+  mongodb-data: {}

@@ -1,0 +1,28 @@
+services:
+  backend:
+    image: qkdgur3490/mbti_project:2.0
+    ports:
+      - "3000:8000"
+    environment:
+      - PORT=8000
+      - GUESTBOOK_DB_ADDR=mongodb:27017
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    # healthcheck 명령어를 최신 'mongosh'로 수정합니다.
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --eval 'db.adminCommand(\"ping\")'"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  mongo-data:

@@ -1,0 +1,219 @@
+doctype html
+html(lang="ko")
+    head
+        meta(charset='utf-8')
+        title MBTI Guestbook
+        meta(name='viewport', content='width=device-width, initial-scale=1')
+        
+        link(rel='stylesheet', href='https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css')
+        link(rel='preconnect', href='https://fonts.googleapis.com')
+        link(rel='preconnect', href='https://fonts.gstatic.com', crossorigin)
+        link(href='https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap', rel='stylesheet')
+
+        style.
+            body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8f9fa; color: #343a40; }
+            .header { background-color: #ffffff; padding: 2rem 0; border-bottom: 1px solid #dee2e6; margin-bottom: 2rem; }
+            .header h1 a { color: #343a40; font-weight: 700; text-decoration: none; }
+            .test-container { background-color: #ffffff; border-radius: 15px; padding: 2rem 2.5rem; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.07); margin-bottom: 2rem; }
+            .question-block { margin-bottom: 1.75rem; }
+            .question-block p { font-weight: 500; font-size: 1.1rem; margin-bottom: 0.75rem; }
+            .btn-group-toggle .btn { border-radius: 20px !important; margin: 0 4px; font-size: 0.9rem; border-width: 1px; transition: all 0.2s ease-in-out; }
+            .btn-group-toggle > .btn.active { background-color: #007bff; color: white; transform: scale(1.05); }
+            #submitBtn, #showResultBtn { border-radius: 25px; padding: 10px 25px; font-weight: 500; }
+            .card { border-radius: 15px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05); border: none; }
+            .modal-content { border-radius: 15px; border: none; }
+            .modal-header { border-bottom: none; }
+            .modal-footer { border-top: none; }
+            #modalResultText { font-size: 3.5rem; color: #007bff; }
+
+    body
+        .header
+            .container.text-center
+                h1
+                    a(href='/') 당신의 MBTI를 남겨주세요
+                div.mt-2
+                    a(href='http://dshub.cloud').text-muted.mr-3 Myhome : DATASTORY.HUB
+                    button#showResultBtn.btn.btn-sm.btn-outline-info(type="button", style="display:none;") 내 결과 다시보기
+
+        .container
+            .test-container
+                form#mbtiForm(action="/post", method="POST")
+                    .progress.mb-4(style="height: 20px;")
+                        #progressBar.progress-bar.bg-success.progress-bar-striped.progress-bar-animated(role="progressbar", style="width: 0%;") 0%
+                    
+                    hr.my-4
+
+                    -
+                        const questions = {
+                            'E/I': ['나는 사람들과 함께 있을 때 에너지를 얻는다.', '새로운 사람을 만나는 사교 모임을 즐긴다.', '주목받는 것을 즐기는 편이다.', '생각을 먼저 말로 표현하는 경향이 있다.', '활동적이고 적극적으로 나서는 것을 선호한다.'],
+                            'S/N': ['나는 경험을 통해 배우는 것을 더 신뢰한다.', '현재의 사실과 세부사항에 집중하는 편이다.', '실용적이고 현실적인 해결책을 선호한다.', '비유나 은유보다 명확하고 직설적인 설명을 좋아한다.', '나는 오감을 통해 얻는 정보를 중요하게 생각한다.'],
+                            'T/F': ['나는 결정을 내릴 때 객관적인 사실과 논리를 우선시한다.', '공정성과 원칙을 중요하게 생각한다.', '감정적인 호소보다 논리적인 분석에 더 설득된다.', '때로는 솔직한 비판이 필요하다고 믿는다.', '문제의 원인을 분석하고 해결하는 것을 즐긴다.'],
+                            'J/P': ['나는 계획을 세우고 그것을 따르는 것을 좋아한다.', '마감 기한을 지키는 것이 매우 중요하다.', '정리정돈된 환경에서 안정감을 느낀다.', '결정을 빨리 내리고 다음 단계로 넘어가는 것을 선호한다.', '예측 가능한 상황을 좋아하고 즉흥적인 변화를 피하는 편이다.']
+                        };
+                        let q_index = 0;
+
+                    each categoryQuestions, category in questions
+                        fieldset.my-4
+                            legend.h5.mb-3 #{category}
+                            each question in categoryQuestions
+                                - q_index++
+                                .question-block
+                                    p #{q_index}. #{question}
+                                    .btn-group.btn-group-toggle(data-toggle="buttons")
+                                        label.btn.btn-outline-secondary
+                                            input(type="radio", name=`q${q_index}`, value="-2", required)
+                                            span 매우 아니다
+                                        label.btn.btn-outline-secondary
+                                            input(type="radio", name=`q${q_index}`, value="-1")
+                                            span 아니다
+                                        label.btn.btn-outline-secondary
+                                            input(type="radio", name=`q${q_index}`, value="0")
+                                            span 보통
+                                        label.btn.btn-outline-secondary
+                                            input(type="radio", name=`q${q_index}`, value="1")
+                                            span 그렇다
+                                        label.btn.btn-outline-secondary
+                                            input(type="radio", name=`q${q_index}`, value="2")
+                                            span 매우 그렇다
+                    
+                    input(type="hidden", name="body", id="mbtiResultInput")
+                    
+                    //- --- style="display:none;"을 제거하여 항상 보이도록 수정 ---
+                    hr.my-4
+                    div#final-inputs
+                        h5.text-center.mb-3 마지막으로 정보를 입력해주세요.
+                        .row.justify-content-center
+                            .col-md-5.mb-3
+                                .input-group
+                                    .input-group-prepend
+                                        span.input-group-text Writer
+                                    input#name.form-control(type="text", name="name", placeholder="이름을 입력하세요", required)
+                            .col-md-5.mb-3
+                                .input-group
+                                    .input-group-prepend
+                                        span.input-group-text Date
+                                    input#date.form-control(type="date", name="date", required)
+                    //- ----------------------------------------------------
+
+                    .text-center.mt-4
+                        button#submitBtn.btn.btn-primary.btn-lg(type="submit", disabled) Pass to MongoDB
+
+            hr
+
+            section#post-list
+                if messages.length > 0
+                    h2.text-center.mb-4 방문자 기록
+                    .row
+                        each msg in messages
+                            .col-md-6.col-lg-4.mb-4
+                                .card
+                                    .card-body
+                                        h5.card-title #{msg.name}
+                                        h6.card-subtitle.mb-2.text-muted #{msg.timeAgo}
+                                        p.card-text.mt-3
+                                            strong MBTI 결과: 
+                                            span.badge.badge-success.p-2 #{msg.body}
+                                        small.text-muted #{msg.date}
+                else
+                    .alert.alert-info(role='alert')
+                        | 아직 등록된 방명록이 없습니다. 첫 번째 기록을 남겨보세요!
+        
+        #resultModal.modal.fade(tabindex="-1", role="dialog")
+            .modal-dialog.modal-dialog-centered(role="document")
+                .modal-content
+                    .modal-header
+                        h5.modal-title 🎉 당신의 MBTI 결과입니다!
+                        button.close(type="button", data-dismiss="modal", aria-label="Close")
+                            span(aria-hidden="true") &times;
+                    .modal-body.text-center
+                        p.lead 당신의 성향을 나타내는 유형은...
+                        h1#modalResultText.font-weight-bold
+                    .modal-footer
+                        button.btn.btn-secondary(type="button", data-dismiss="modal") 닫기
+
+        script(src='https://code.jquery.com/jquery-3.5.1.slim.min.js')
+        script(src='https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js')
+        script(src='https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js')
+
+        script.
+            document.addEventListener('DOMContentLoaded', () => {
+                const totalQuestions = 20;
+                const mbtiForm = document.getElementById('mbtiForm');
+                const progressBar = document.getElementById('progressBar');
+                const nameInput = document.getElementById('name');
+                const dateInput = document.getElementById('date');
+                const mbtiResultInput = document.getElementById('mbtiResultInput');
+                const submitBtn = document.getElementById('submitBtn');
+                const showResultBtn = document.getElementById('showResultBtn');
+                const modalResultText = document.getElementById('modalResultText');
+                
+                if (localStorage.getItem('userMBTI')) {
+                    showResultBtn.style.display = 'inline-block';
+                }
+
+                mbtiForm.addEventListener('change', () => {
+                    updateProgress();
+                    checkCompletion();
+                });
+
+                showResultBtn.addEventListener('click', () => {
+                    const result = localStorage.getItem('userMBTI');
+                    if (result) {
+                        showResultModal(result);
+                    }
+                });
+                
+                function updateProgress() {
+                    const checkedRadios = document.querySelectorAll('input[type="radio"]:checked');
+                    const progress = (checkedRadios.length / totalQuestions) * 100;
+                    progressBar.style.width = `${progress}%`;
+                    progressBar.textContent = `${Math.round(progress)}%`;
+                }
+
+                function checkCompletion() {
+                    const allQuestionsAnswered = document.querySelectorAll('input[type="radio"]:checked').length === totalQuestions;
+                    const writerFilled = nameInput.value.trim() !== '';
+                    const dateFilled = dateInput.value !== '';
+
+                    if (allQuestionsAnswered && writerFilled && dateFilled) {
+                        const result = calculateMBTI();
+                        
+                        mbtiResultInput.value = result;
+                        
+                        const storedResult = localStorage.getItem('userMBTI');
+                        if (result !== storedResult) {
+                            localStorage.setItem('userMBTI', result);
+                            showResultModal(result);
+                        }
+
+                        submitBtn.disabled = false;
+                        showResultBtn.style.display = 'inline-block';
+
+                    } else {
+                        submitBtn.disabled = true;
+                    }
+                }
+
+                function calculateMBTI() {
+                    const scores = { E: 0, S: 0, T: 0, J: 0 };
+                    for (let i = 1; i <= totalQuestions; i++) {
+                        const value = parseInt(document.querySelector(`input[name="q${i}"]:checked`).value);
+                        if (i <= 5) scores.E += value;
+                        if (i > 5 && i <= 10) scores.S += value;
+                        if (i > 10 && i <= 15) scores.T += value;
+                        if (i > 15 && i <= 20) scores.J += value;
+                    }
+
+                    let result = '';
+                    result += (scores.E > 0) ? 'E' : 'I';
+                    result += (scores.S > 0) ? 'S' : 'N';
+                    result += (scores.T > 0) ? 'T' : 'F';
+                    result += (scores.J > 0) ? 'J' : 'P';
+                    return result;
+                }
+
+                function showResultModal(result) {
+                    modalResultText.textContent = result;
+                    $('#resultModal').modal('show');
+                }
+            });

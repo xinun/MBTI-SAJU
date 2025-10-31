@@ -1,0 +1,299 @@
+doctype html
+html(lang="ko")
+    head
+        meta(charset='utf-8')
+        title MBTI Guestbook
+        meta(name='viewport', content='width=device-width, initial-scale=1')
+        
+        link(rel='stylesheet', href='https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css')
+        link(rel='preconnect', href='https://fonts.googleapis.com')
+        link(rel='preconnect', href='https://fonts.gstatic.com', crossorigin)
+        link(href='https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap', rel='stylesheet')
+
+        style.
+            body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8f9fa; color: #343a40; }
+            .header { background-color: #ffffff; padding: 2rem 0; border-bottom: 1px solid #dee2e6; margin-bottom: 2rem; }
+            .test-container { background-color: #ffffff; border-radius: 15px; padding: 2rem 2.5rem; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.07); margin-bottom: 2rem; }
+            .question-block { margin-bottom: 1.75rem; }
+            .card { border-radius: 15px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05); border: none; }
+            .modal-content { border-radius: 15px; }
+
+    body
+        .header
+            .container.text-center
+                h1: a(href='/') 당신의 MBTI를 남겨주세요
+                div.mt-2
+                    a(href='/saju').text-muted.mr-3 사주 보기
+                    button#showResultBtn.btn.btn-sm.btn-outline-info(type="button", style="display:none;") 내 결과 다시보기
+                    button#debugFillBtn.btn.btn-sm.btn-warning.mt-2(type="button") [Debug: Auto-Fill]
+
+        .container
+            .test-container
+                form#mbtiForm(action="/post", method="POST")
+                    .d-flex.justify-content-between.align-items-center.mb-2
+                        h5 진행 상황
+                        h5#questionCounter (0 / 20)
+                    .progress.mb-4(style="height: 20px;")
+                        #progressBar.progress-bar.bg-success.progress-bar-striped.progress-bar-animated(role="progressbar", style="width: 0%;") 0%
+                    
+                    hr.my-4
+                    -
+
+                        let q_index = 0;
+
+                    each categoryQuestions, category in questions
+                        fieldset.my-4
+                            legend.h5.mb-3 #{category}
+                            each question in categoryQuestions
+                                - q_index++
+                                .question-block
+                                    p #{q_index}. #{question}
+                                    .btn-group.btn-group-toggle(data-toggle="buttons")
+                                        label.btn.btn-outline-secondary
+                                            input(type="radio", name=`q${q_index}`, value="-2", required)
+                                            span 매우 아니다
+                                        label.btn.btn-outline-secondary
+                                            input(type="radio", name=`q${q_index}`, value="-1")
+                                            span 아니다
+                                        label.btn.btn-outline-secondary
+                                            input(type="radio", name=`q${q_index}`, value="0")
+                                            span 보통
+                                        label.btn.btn-outline-secondary
+                                            input(type="radio", name=`q${q_index}`, value="1")
+                                            span 그렇다
+                                        label.btn.btn-outline-secondary
+                                            input(type="radio", name=`q${q_index}`, value="2")
+                                            span 매우 그렇다
+                    
+                    input(type="hidden", name="mbti", id="mbtiResultInput")
+                    input(type="hidden", name="scoreE", id="scoreE")
+                    input(type="hidden", name="scoreS", id="scoreS")
+                    input(type="hidden", name="scoreT", id="scoreT")
+                    input(type="hidden", name="scoreJ", id="scoreJ")
+                    
+                    hr.my-4
+
+                    .text-center.mt-4
+                        button#calculateBtn.btn.btn-info.btn-lg(type="button", disabled) 결과 보기
+
+                    div#final-inputs(style="display:none;")
+                        hr.my-4
+                        h5.text-center.mb-3 마지막으로 정보를 입력해주세요.
+                        .row.justify-content-center
+                            .col-md-5.mb-3
+                                .input-group
+                                    .input-group-prepend
+                                        span.input-group-text Writer
+                                    input#name.form-control(type="text", name="name", placeholder="이름을 입력하세요", required)
+                            .col-md-5.mb-3
+                                .input-group
+                                    .input-group-prepend
+                                        span.input-group-text Date
+                                    input#date.form-control(type="date", name="date", required)
+                        .row.justify-content-center
+                            .col-md-10.mb-3
+                                .input-group
+                                    .input-group-prepend
+                                        span.input-group-text 한마디
+                                    input.form-control(type="text", name="memo", placeholder="결과에 대한 소감을 남겨보세요! (선택)")
+                        .row.justify-content-center
+                            .col-md-10.mb-3
+                                .input-group
+                                    .input-group-prepend
+                                        span.input-group-text 태그
+                                    input.form-control(type="text", name="tags", placeholder="쉼표(,)로 구분하여 자신을 표현해보세요.")
+                        .text-center.mt-4
+                            button#submitBtn.btn.btn-primary.btn-lg(type="submit", disabled) 결과 저장하기
+            hr
+
+            section#post-list
+                if messages && messages.length > 0
+                    h2.text-center.mb-4 방문자 기록
+                    .row
+                        each msg in messages
+                            .col-md-6.col-lg-4.mb-4
+                                .card
+                                    .card-body
+                                        h5.card-title #{msg.name}
+                                        p.card-text.mt-3
+                                            strong MBTI 결과: 
+                                            span.badge.badge-success.p-2 #{msg.mbti}
+                                        if msg.memo
+                                            p.card-text.font-italic.mt-2
+                                                | "#{msg.memo}"
+                                        if msg.tags && msg.tags.length > 0
+                                            div.mt-2
+                                                each tag in msg.tags
+                                                    span.badge.badge-pill.badge-info.mr-1 #{tag}
+                                        hr
+                                        div.d-flex.justify-content-between.align-items-center
+                                            small.text-muted #{new Date(msg.createdAt).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}
+                                            div
+                                                span.mr-1(id=`likes-count-${msg._id}`) #{msg.likes || 0}
+                                                button.btn.btn-sm.btn-outline-danger.like-button(type="button", data-id=msg._id) ❤️
+                else
+                    .alert.alert-info(role='alert')
+                        | 아직 등록된 방명록이 없습니다.
+
+        #resultModal.modal.fade(tabindex="-1", role="dialog")
+            .modal-dialog.modal-dialog-centered(role="document")
+                .modal-content
+                    .modal-header
+                        h5.modal-title 🎉 당신의 MBTI 결과입니다!
+                        button.close(type="button", data-dismiss="modal"): span(aria-hidden="true") &times;
+                    .modal-body.text-center
+                        p.lead 당신의 성향을 나타내는 유형은...
+                        h1#modalResultText.font-weight-bold
+                    .modal-footer
+                        button.btn.btn-secondary(type="button", data-dismiss="modal") 닫기
+
+        script(src='https://code.jquery.com/jquery-3.5.1.slim.min.js')
+        script(src='https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js')
+        script(src='https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js')
+
+        script.
+            document.addEventListener('DOMContentLoaded', () => {
+                const totalQuestions = 100;
+                const mbtiForm = document.getElementById('mbtiForm');
+                const debugFillBtn = document.getElementById('debugFillBtn'); // 🌟 디버그 버튼 변수
+                const progressBar = document.getElementById('progressBar');
+                const nameInput = document.getElementById('name');
+                const dateInput = document.getElementById('date');
+                const mbtiResultInput = document.getElementById('mbtiResultInput');
+                const calculateBtn = document.getElementById('calculateBtn');
+                const finalInputs = document.getElementById('final-inputs');
+                const submitBtn = document.getElementById('submitBtn');
+                const showResultBtn = document.getElementById('showResultBtn');
+                const modalResultText = document.getElementById('modalResultText');
+                const questionCounter = document.getElementById('questionCounter');
+
+                const allRadios = document.querySelectorAll('input[type="radio"]');
+                allRadios.forEach(radio => {
+                    radio.addEventListener('click', () => {
+                        updateProgress();
+                        checkCompletion();
+                    });
+                });
+                
+                nameInput.addEventListener('input', checkCompletion);
+                dateInput.addEventListener('input', checkCompletion);
+
+                if (localStorage.getItem('userMBTI')) {
+                    showResultBtn.style.display = 'inline-block';
+                }
+                debugFillBtn.addEventListener('click', () => {
+                        console.log('[DEBUG] Auto-filling all questions...');
+                        // 모든 질문에 대해 '매우 그렇다' (value="2")를 선택하도록 시뮬레이션
+                        for (let i = 1; i <= totalQuestions; i++) {
+                            const radioToSelect = document.querySelector(`input[name="q${i}"][value="2"]`);
+                            if (radioToSelect) {
+                                // 이미 선택된 상태가 아니라면 클릭 이벤트를 발생시킵니다.
+                                if (!radioToSelect.checked) {
+                                    radioToSelect.click(); // 'click'을 호출하여 change 이벤트도 트리거
+                                }
+                            }
+                        }
+                        // 진행률 업데이트 및 완료 상태 확인 함수를 수동으로 호출
+                        updateProgress();
+                        checkCompletion();
+                        console.log('[DEBUG] Auto-fill complete.');
+                        // 필요하다면 자동으로 '결과 보기' 버튼 클릭 시뮬레이션도 추가 가능
+                        // if (!calculateBtn.disabled) {
+                        //     calculateBtn.click();
+                        // }
+                    });
+                calculateBtn.addEventListener('click', () => {
+                    const result = calculateMBTI();
+                    mbtiResultInput.value = result;
+                    localStorage.setItem('userMBTI', result);
+                    showResultModal(result);
+                    finalInputs.style.display = 'block';
+                    calculateBtn.style.display = 'none';
+                    showResultBtn.style.display = 'inline-block';
+                });
+                
+                showResultBtn.addEventListener('click', () => {
+                    const result = localStorage.getItem('userMBTI');
+                    if (result) showResultModal(result);
+                });
+                
+                function updateProgress() {
+                    const checkedRadios = document.querySelectorAll('input[type="radio"]:checked');
+                    const answeredCount = checkedRadios.length;
+                    const progress = (answeredCount / totalQuestions) * 100;
+                    
+                    progressBar.style.width = `${progress}%`;
+                    progressBar.textContent = `${Math.round(progress)}%`;
+                    questionCounter.textContent = `(${answeredCount} / ${totalQuestions})`;
+                }
+
+                function checkCompletion() {
+                    const allQuestionsAnswered = document.querySelectorAll('input[type="radio"]:checked').length === totalQuestions;
+                    calculateBtn.disabled = !allQuestionsAnswered;
+                    
+                    const writerFilled = nameInput.value.trim() !== '';
+                    const dateFilled = dateInput.value !== '';
+                    submitBtn.disabled = !(allQuestionsAnswered && writerFilled && dateFilled);
+                }
+
+                function calculateMBTI() {
+                    const scores = { E: 0, S: 0, T: 0, J: 0 };
+                    const eiEnd = 26; // E/I 질문 끝 번호
+                    const snEnd = eiEnd + 25; // S/N 질문 끝 번호
+                    const tfEnd = snEnd + 24; // T/F 질문 끝 번호
+                    const jpEnd = tfEnd + 25; // J/P 질문 끝 번호 (총 100)
+                        for (let i = 1; i <= jpEnd; i++) {
+                        const radio = document.querySelector(`input[name="q${i}"]:checked`);
+                        if(radio) {
+                            const value = parseInt(radio.value);
+                            if (i <= 5) scores.E += value;
+                            if (i > 5 && i <= 10) scores.S += value;
+                            if (i > 10 && i <= 15) scores.T += value;
+                            if (i > 15 && i <= 20) scores.J += value;
+                        }
+                    }
+
+                    document.getElementById('scoreE').value = scores.E;
+                    document.getElementById('scoreS').value = scores.S;
+                    document.getElementById('scoreT').value = scores.T;
+                    document.getElementById('scoreJ').value = scores.J;
+
+                    let result = '';
+                    result += (scores.E > 0) ? 'E' : 'I';
+                    result += (scores.S > 0) ? 'S' : 'N';
+                    result += (scores.T > 0) ? 'T' : 'F';
+                    result += (scores.J > 0) ? 'J' : 'P';
+                    return result;
+                }
+
+                function showResultModal(result) {
+                    modalResultText.textContent = result;
+                    $('#resultModal').modal('show');
+                }
+                
+                function initializeLikeButtons() {
+                    const likeButtons = document.querySelectorAll('.like-button');
+                    likeButtons.forEach(button => {
+                        button.addEventListener('click', () => {
+                            const messageId = button.dataset.id;
+                            
+                            fetch(`/like/${messageId}`, { method: 'POST' })
+                                .then(response => {
+                                    if (!response.ok) {
+                                        throw new Error('Network response was not ok');
+                                    }
+                                    return response.json();
+                                })
+                                .then(updatedMessage => {
+                                    const countSpan = document.getElementById(`likes-count-${messageId}`);
+                                    if (countSpan) {
+                                        countSpan.textContent = updatedMessage.likes;
+                                    }
+                                })
+                                .catch(error => console.error('Error:', error));
+                        });
+                    });
+                }
+                
+                initializeLikeButtons();
+            });
